@@ -8,7 +8,10 @@ A web application for displaying meanings of Marathi words, built with Laravel 1
 - **Word Dictionary**: Search and display meanings of 267,000+ Marathi words
 - **Admin Panel**: Administrative interface for managing content
 - **Responsive Design**: Modern UI built with Tailwind CSS
-- **Static Pages**: 5-6 static pages (to be implemented)
+- **Static Pages**: Multiple static pages including Objectives, Appeal, Science, etc.
+- **Google Sign-In**: Integrated Google One Tap and Sign-In functionality
+- **Category-based Glossary**: 35+ categories of specialized glossaries
+- **Global Search**: Search words across all categories
 
 ## Tech Stack
 
@@ -17,12 +20,14 @@ A web application for displaying meanings of Marathi words, built with Laravel 1
 - **Tailwind CSS**: v4
 - **Vite**: Asset compilation
 - **Database**: MySQL/PostgreSQL (to be configured)
+- **Laravel Socialite**: For Google OAuth integration
 
 ## Installation
 
-1. **Clone the repository** (if applicable) or navigate to the project directory:
+1. **Clone the repository**:
    ```bash
-   cd marathibhashs
+   git clone https://github.com/Sanket19915/marathibhasha.git
+   cd marathibhasha
    ```
 
 2. **Install PHP dependencies**:
@@ -43,19 +48,28 @@ A web application for displaying meanings of Marathi words, built with Laravel 1
 
 5. **Configure Database**:
    - Update `.env` file with your database credentials
-   - Run migrations (once database schema is analyzed):
+   - Run migrations:
      ```bash
      php artisan migrate
      ```
 
-6. **Build Assets**:
+6. **Configure Google Sign-In** (Optional):
+   - Add Google OAuth credentials to `.env`:
+     ```env
+     GOOGLE_CLIENT_ID=your_client_id
+     GOOGLE_CLIENT_SECRET=your_client_secret
+     GOOGLE_REDIRECT_URI=http://localhost:8000/auth/google/callback
+     ```
+   - See `GOOGLE_SIGNIN_SETUP.md` for detailed setup instructions
+
+7. **Build Assets**:
    ```bash
    npm run build
    # Or for development:
    npm run dev
    ```
 
-7. **Start Development Server**:
+8. **Start Development Server**:
    ```bash
    php artisan serve
    ```
@@ -79,10 +93,11 @@ A web application for displaying meanings of Marathi words, built with Laravel 1
 ### Project Structure
 
 ```
-marathibhashs/
+marathibhasha/
 ├── app/                    # Application code
 │   ├── Http/
 │   │   └── Controllers/    # Controllers
+│   ├── Mail/               # Mail classes
 │   └── Models/             # Eloquent models
 ├── config/                 # Configuration files
 ├── database/              # Migrations and seeders
@@ -94,6 +109,7 @@ marathibhashs/
 │   └── views/             # Blade templates
 │       ├── layouts/       # Layout templates
 │       ├── pages/         # Frontend pages
+│       ├── components/    # Reusable components
 │       └── admin/         # Admin pages
 └── routes/                # Route definitions
 ```
@@ -110,26 +126,22 @@ The application uses the following fonts for Devanagari script:
 
 These fonts are loaded from Google Fonts.
 
-## Next Steps
+## Features Implemented
 
-1. **Database Setup**:
-   - Analyze existing database structure
-   - Create migration files
-   - Set up database connection
-
-2. **Frontend Development**:
-   - Implement word search functionality
-   - Create word detail pages
-   - Implement static pages
-
-3. **Admin Panel**:
-   - Implement admin-specific functionality (details to be shared)
-
-See `DEVELOPMENT_PLAN.md` for detailed development phases and tasks.
+- ✅ Homepage with category listing
+- ✅ Category pages with word listings
+- ✅ Global word search functionality
+- ✅ Static pages (Objectives, Appeal, Science, etc.)
+- ✅ Google Sign-In integration
+- ✅ Word suggestion form
+- ✅ Responsive design
+- ✅ Marathi language support throughout
 
 ## Documentation
 
 - **Development Plan**: See `DEVELOPMENT_PLAN.md` for detailed project roadmap
+- **Google Sign-In Setup**: See `GOOGLE_SIGNIN_SETUP.md` for Google OAuth configuration
+- **Folder Structure**: See `FOLDER_STRUCTURE.md` for project organization
 - **Laravel Documentation**: https://laravel.com/docs
 - **Tailwind CSS Documentation**: https://tailwindcss.com/docs
 
