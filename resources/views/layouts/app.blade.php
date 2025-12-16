@@ -18,6 +18,25 @@
 
     <!-- Google Sign-In SDK -->
     <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+    <!-- Google Analytics -->
+    @php
+        // Try database settings first, fallback to config/env
+        $gaId = \App\Models\Setting::get('google_analytics_id') ?: config('services.google_analytics.measurement_id');
+    @endphp
+    @if($gaId)
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id={{ $gaId }}"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', '{{ $gaId }}', {
+            'page_path': window.location.pathname + window.location.search,
+            'page_title': document.title
+        });
+    </script>
+    @endif
 </head>
 <body class="font-sans antialiased bg-white">
     <div class="min-h-screen flex flex-col">
@@ -29,14 +48,8 @@
             @yield('content')
         </main>
 
-        <!-- Footer -->
-        <footer class="bg-white border-t border-gray-200 mt-auto">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-                <p class="text-center text-gray-600 text-sm">
-                    &copy; {{ date('Y') }} {{ __('common.marathi_bhasha') }}. {{ __('common.all_rights_reserved') ?? 'सर्व हक्क राखीव' }}
-                </p>
-            </div>
-        </footer>
+        <!-- Footer Component -->
+        <x-footer />
     </div>
 
     @stack('scripts')

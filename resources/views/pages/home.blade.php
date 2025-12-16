@@ -21,55 +21,23 @@
 
         <!-- Categories Grid -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-            @php
-                $categories = [
-                    'अर्थशास्त्र',
-                    'औषधशास्त्र',
-                    'कार्यदर्शिका',
-                    'कार्यालयीन शब्दांवली',
-                    'कृषिशास्त्र',
-                    'गणितशास्त्र',
-                    'ग्रंथालयशास्त्र',
-                    'जीवशास्त्र',
-                    'तत्वज्ञान व तर्कशास्त्र',
-                    'धातूशास्त्र',
-                    'न्यायव्यवहार कोश',
-                    'पदनाम कोश',
-                    'प्रशासन वाक्यप्रयोग',
-                    'बैंकिंग शब्दांवली (हिंदी)',
-                    'भूशास्त्र',
-                    'भूगोल',
-                    'भौतिकशास्त्र',
-                    'मराठी विश्ववकोश परीभाषा कोश',
-                    'मानसशास्त्र',
-                    'यंत्र अभियांत्रिकी',
-                    'रसायनशास्त्र',
-                    'राज्यशास्त्र',
-                    'लोकप्रशासन',
-                    'वाणिज्यशास्त्र',
-                    'विकृतीशास्त्र',
-                    'वित्तीय शब्दांवली',
-                    'विद्युत अभियांत्रिकी',
-                    'वैज्ञानिक पारिभाषिक संज्ञा',
-                    'व्यवसाय व्यवस्थापन',
-                    'शरीर परिभाषा',
-                    'शासन व्यवहार',
-                    'शिक्षणशास्त्र',
-                    'संख्याशास्त्र',
-                    'साहित्य समीक्षा',
-                    'स्थापत्य अभियांत्रिकी',
-                ];
-            @endphp
-
-            @foreach($categories as $categoryName)
-                @php
-                    $slug = \App\Http\Controllers\HomeController::generateSlug($categoryName);
-                @endphp
-                <a href="{{ route('category', $slug) }}" 
+            @foreach($categories as $category)
+                <a href="{{ route('category', $category['slug']) }}" 
                    class="block p-4 border border-gray-200 rounded-lg hover:border-orange-500 hover:bg-orange-50 transition-all duration-200 group">
-                    <span class="text-red-600 font-medium text-base md:text-lg group-hover:text-orange-600">
-                        {{ $categoryName }}
-                    </span>
+                    <div class="flex items-center justify-between">
+                        <span class="text-red-600 font-medium text-base md:text-lg group-hover:text-orange-600">
+                            {{ $category['name'] }}
+                        </span>
+                        @if($category['has_data'] && $category['entry_count'] > 0)
+                            <span class="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                                {{ number_format($category['entry_count']) }}
+                            </span>
+                        @elseif(!$category['has_data'])
+                            <span class="text-xs text-gray-400 italic">
+                                {{ __('common.coming_soon') ?? 'Coming soon' }}
+                            </span>
+                        @endif
+                    </div>
                 </a>
             @endforeach
         </div>

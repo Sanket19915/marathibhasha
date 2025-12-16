@@ -5,12 +5,79 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Mail\WordSuggestionMail;
 use Illuminate\Support\Facades\Mail;
+use App\Models\Category;
 
 class HomeController extends Controller
 {
     public function index()
     {
-        return view('pages.home');
+        // Get all categories from database with their entry counts
+        $dbCategories = Category::withCount('entries')
+            ->orderBy('name_mr')
+            ->get();
+
+        // Get static categories list (for categories that might not have data yet)
+        $staticCategories = [
+            'अर्थशास्त्र',
+            'औषधशास्त्र',
+            'कार्यदर्शिका',
+            'कार्यालयीन शब्दांवली',
+            'कृषिशास्त्र',
+            'गणितशास्त्र',
+            'ग्रंथालयशास्त्र',
+            'जीवशास्त्र',
+            'तत्वज्ञान व तर्कशास्त्र',
+            'धातूशास्त्र',
+            'न्यायव्यवहार कोश',
+            'पदनाम कोश',
+            'प्रशासन वाक्यप्रयोग',
+            'बैंकिंग शब्दांवली (हिंदी)',
+            'भूशास्त्र',
+            'भूगोल',
+            'भौतिकशास्त्र',
+            'मराठी विश्ववकोश परीभाषा कोश',
+            'मानसशास्त्र',
+            'यंत्र अभियांत्रिकी',
+            'रसायनशास्त्र',
+            'राज्यशास्त्र',
+            'लोकप्रशासन',
+            'वाणिज्यशास्त्र',
+            'विकृतीशास्त्र',
+            'वित्तीय शब्दांवली',
+            'विद्युत अभियांत्रिकी',
+            'वैज्ञानिक पारिभाषिक संज्ञा',
+            'व्यवसाय व्यवस्थापन',
+            'शरीर परिभाषा',
+            'शासन व्यवहार',
+            'शिक्षणशास्त्र',
+            'संख्याशास्त्र',
+            'साहित्य समीक्षा',
+            'स्थापत्य अभियांत्रिकी',
+        ];
+
+        // Create a map of database categories by normalized name for quick lookup
+        // Normalize by removing all types of whitespace (including non-breaking spaces)
+        $dbCategoriesMap = $dbCategories->keyBy(function ($category) {
+            return trim(preg_replace('/[\s\x{00A0}\x{2000}-\x{200B}\x{202F}\x{205F}\x{3000}]+/u', ' ', $category->name_mr));
+        });
+
+        // Combine: show database categories first, then static ones that aren't in DB
+        $allCategories = collect($staticCategories)->map(function ($categoryName) use ($dbCategoriesMap) {
+            $normalizedName = trim(preg_replace('/[\s\x{00A0}\x{2000}-\x{200B}\x{202F}\x{205F}\x{3000}]+/u', ' ', $categoryName));
+            $dbCategory = $dbCategoriesMap->get($normalizedName);
+            
+            return [
+                'name' => $categoryName,
+                'slug' => self::generateSlug($categoryName),
+                'entry_count' => $dbCategory ? $dbCategory->entries_count : 0,
+                'has_data' => $dbCategory !== null,
+            ];
+        })->sortBy('name')->values();
+
+        return view('pages.home', [
+            'categories' => $allCategories,
+            'dbCategories' => $dbCategories,
+        ]);
     }
 
     public function objectives()
@@ -78,7 +145,27 @@ class HomeController extends Controller
 
     public function category($slug)
     {
-        // Get category name from slug
+        // First, try to get category from database
+        $dbCategory = Category::where('slug', $slug)->with('entries')->first();
+        
+        if ($dbCategory) {
+            // Use database category
+            $words = $dbCategory->entries->map(function ($entry) {
+                return [
+                    'english' => $entry->word_en,
+                    'marathi' => $entry->meaning_mr,
+                ];
+            })->toArray();
+            
+            return view('pages.category', [
+                'category' => $dbCategory->name_mr,
+                'words' => $words,
+                'totalWords' => count($words),
+                'slug' => $slug
+            ]);
+        }
+
+        // Fallback to static category data
         $categoryName = $this->getCategoryNameFromSlug($slug);
         
         if (!$categoryName) {
@@ -188,10 +275,47 @@ class HomeController extends Controller
         }
 
         $results = [];
-        $allCategories = $this->getAllCategoriesData();
+        $searchTerm = strtolower($query);
 
-        // Search across all categories
+        // Search in database categories first
+        $dbCategories = Category::with('entries')->get();
+        foreach ($dbCategories as $category) {
+            $matchedWords = $category->entries()
+                ->where(function ($q) use ($searchTerm) {
+                    $q->whereRaw('LOWER(word_en) LIKE ?', ['%' . $searchTerm . '%'])
+                      ->orWhereRaw('LOWER(meaning_mr) LIKE ?', ['%' . $searchTerm . '%']);
+                })
+                ->get()
+                ->map(function ($entry) {
+                    return [
+                        'english' => $entry->word_en,
+                        'marathi' => $entry->meaning_mr,
+                    ];
+                })
+                ->toArray();
+
+            if (!empty($matchedWords)) {
+                $results[] = [
+                    'category' => $category->name_mr,
+                    'slug' => $category->slug,
+                    'words' => $matchedWords,
+                    'count' => count($matchedWords)
+                ];
+            }
+        }
+
+        // Also search in static categories (for categories not yet in database)
+        $allCategories = $this->getAllCategoriesData();
         foreach ($allCategories as $slug => $categoryData) {
+            // Skip if we already have this category from database
+            $alreadyInResults = collect($results)->contains(function ($result) use ($slug) {
+                return $result['slug'] === $slug;
+            });
+            
+            if ($alreadyInResults) {
+                continue;
+            }
+
             $categoryName = $this->getCategoryNameFromSlug($slug);
             if (!$categoryName) {
                 continue;
@@ -201,7 +325,6 @@ class HomeController extends Controller
             foreach ($categoryData['words'] ?? [] as $word) {
                 $english = strtolower($word['english'] ?? '');
                 $marathi = strtolower($word['marathi'] ?? '');
-                $searchTerm = strtolower($query);
 
                 if (str_contains($english, $searchTerm) || str_contains($marathi, $searchTerm)) {
                     $matchedWords[] = $word;

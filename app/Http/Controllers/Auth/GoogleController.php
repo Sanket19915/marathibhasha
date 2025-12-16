@@ -93,8 +93,11 @@ class GoogleController extends Controller
                 return response()->json(['success' => false, 'message' => 'Invalid issuer'], 400);
             }
 
+            // Get client ID from database settings or config
+            $clientId = \App\Models\Setting::get('google_client_id') ?: config('services.google.client_id');
+            
             // Verify client ID matches
-            if (!isset($payload['aud']) || $payload['aud'] !== config('services.google.client_id')) {
+            if (!isset($payload['aud']) || $payload['aud'] !== $clientId) {
                 return response()->json(['success' => false, 'message' => 'Invalid client ID'], 400);
             }
 

@@ -1,6 +1,10 @@
 @if(!Auth::check())
 <div id="google-signin-container" class="mb-4">
-    @if(config('services.google.client_id'))
+    @php
+        // Try database settings first, fallback to config/env
+        $clientId = \App\Models\Setting::get('google_client_id') ?: config('services.google.client_id');
+    @endphp
+    @if($clientId)
         <!-- Google Sign-In Button -->
         <div class="g_id_signin"
              data-type="standard"
@@ -15,20 +19,20 @@
         <!-- Fallback if Google Client ID is not configured -->
         <div class="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
             <p class="text-sm text-yellow-800">
-                Google Sign-In is not configured. Please add GOOGLE_CLIENT_ID to your .env file.
+                Google Sign-In is not configured. Please configure it in the <a href="{{ route('admin.settings') }}" class="underline">Admin Settings</a>.
             </p>
         </div>
     @endif
 </div>
 
-@if(config('services.google.client_id'))
+@if($clientId ?? false)
 <script>
     // Wait for Google Sign-In SDK to load
     function initGoogleSignIn() {
         if (typeof google !== 'undefined' && google.accounts && google.accounts.id) {
             try {
                 google.accounts.id.initialize({
-                    client_id: '{{ config('services.google.client_id') }}',
+                    client_id: '{{ $clientId }}',
                     callback: handleGoogleSignIn,
                     auto_select: true,
                     cancel_on_tap_outside: false

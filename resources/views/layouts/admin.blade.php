@@ -25,8 +25,11 @@
                     {{ __('common.admin') }}
                 </h2>
                 <nav class="space-y-2">
-                    <a href="{{ route('admin.dashboard') }}" class="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded">
+                    <a href="{{ route('admin.dashboard') }}" class="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded {{ request()->routeIs('admin.dashboard') ? 'bg-gray-100 font-semibold' : '' }}">
                         {{ __('common.dashboard') }}
+                    </a>
+                    <a href="{{ route('admin.settings') }}" class="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded {{ request()->routeIs('admin.settings*') ? 'bg-gray-100 font-semibold' : '' }}">
+                        Settings
                     </a>
                     <!-- Add more admin menu items here -->
                 </nav>
