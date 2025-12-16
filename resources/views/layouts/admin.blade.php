@@ -28,6 +28,9 @@
                     <a href="{{ route('admin.dashboard') }}" class="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded {{ request()->routeIs('admin.dashboard') ? 'bg-gray-100 font-semibold' : '' }}">
                         {{ __('common.dashboard') }}
                     </a>
+                    <a href="{{ route('admin.word-suggestions') }}" class="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded {{ request()->routeIs('admin.word-suggestions*') ? 'bg-gray-100 font-semibold' : '' }}">
+                        Word Suggestions
+                    </a>
                     <a href="{{ route('admin.settings') }}" class="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded {{ request()->routeIs('admin.settings*') ? 'bg-gray-100 font-semibold' : '' }}">
                         Settings
                     </a>

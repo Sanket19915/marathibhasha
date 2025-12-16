@@ -40,9 +40,11 @@
                     </div>
                 @endif
 
-                <!-- Form -->
-                <form action="{{ route('suggest-word.submit') }}" method="POST" class="space-y-6">
-                    @csrf
+                <!-- Authentication Check -->
+                @auth
+                    <!-- Form -->
+                    <form action="{{ route('suggest-word.submit') }}" method="POST" class="space-y-6">
+                        @csrf
 
                     <!-- Name Field -->
                     <div>
@@ -136,7 +138,22 @@
                             {{ __('common.submit') }}
                         </button>
                     </div>
-                </form>
+                    </form>
+                @else
+                    <!-- Login Prompt -->
+                    <div class="bg-orange-50 border border-orange-200 p-8 rounded-lg">
+                        <div class="text-center">
+                            <svg class="w-16 h-16 mx-auto text-orange-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                            </svg>
+                            <h3 class="text-xl font-semibold text-gray-900 mb-2">शब्द सुचवण्यासाठी साइन-इन करा</h3>
+                            <p class="text-gray-600 mb-6">नवीन शब्द सुचवण्यासाठी कृपया Google साइन-इन करा</p>
+                            <div class="flex justify-center">
+                                <x-google-signin />
+                            </div>
+                        </div>
+                    </div>
+                @endauth
             
         </div>
     </div>

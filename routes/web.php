@@ -12,13 +12,13 @@ Route::get('/science', [HomeController::class, 'science'])->name('science');
 Route::get('/marathi-medium', [HomeController::class, 'marathiMedium'])->name('marathi-medium');
 Route::get('/neet-sample-papers', [HomeController::class, 'neetSamplePapers'])->name('neet-sample-papers');
 Route::get('/suggest-word', [HomeController::class, 'suggestWord'])->name('suggest-word');
-Route::post('/suggest-word', [HomeController::class, 'submitWord'])->name('suggest-word.submit');
+Route::post('/suggest-word', [HomeController::class, 'submitWord'])->middleware('auth')->name('suggest-word.submit');
 
 // Category Routes
 Route::get('/category/{slug}', [HomeController::class, 'category'])->name('category');
 
-// Search Route
-Route::get('/search', [HomeController::class, 'search'])->name('search');
+// Search Route (requires authentication)
+Route::get('/search', [HomeController::class, 'search'])->middleware('auth')->name('search');
 
 // Authentication Routes
 Route::get('/login', [App\Http\Controllers\Auth\LoginController::class, 'showLoginForm'])->name('login');
@@ -35,4 +35,7 @@ Route::prefix('admin')->name('admin.')->middleware('auth')->group(function () {
     Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
     Route::get('/settings', [App\Http\Controllers\Admin\SettingsController::class, 'index'])->name('settings');
     Route::post('/settings', [App\Http\Controllers\Admin\SettingsController::class, 'update'])->name('settings.update');
+    Route::get('/word-suggestions', [AdminController::class, 'wordSuggestions'])->name('word-suggestions');
+    Route::post('/word-suggestions/{id}', [AdminController::class, 'updateWordSuggestion'])->name('word-suggestions.update');
+    Route::delete('/word-suggestions/{id}', [AdminController::class, 'deleteWordSuggestion'])->name('word-suggestions.delete');
 });

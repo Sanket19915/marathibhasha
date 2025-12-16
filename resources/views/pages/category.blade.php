@@ -24,33 +24,49 @@
         </div>
 
         @if($totalWords > 0)
-            <!-- Navigation Bar with Alphabet -->
-            <div class="mb-6 bg-gray-50 p-4 rounded-lg">
-                <div class="flex flex-wrap items-center gap-2 md:gap-3 mb-4">
-                    <a href="#" class="px-3 py-1 text-red-600 font-semibold hover:bg-red-100 rounded">All</a>
-                    @foreach(range('A', 'Z') as $letter)
-                        <a href="#" class="px-2 py-1 text-red-600 hover:bg-red-100 rounded transition-colors">
-                            {{ $letter }}
-                        </a>
-                    @endforeach
-                </div>
+            @auth
+                <!-- Navigation Bar with Alphabet -->
+                <div class="mb-6 bg-gray-50 p-4 rounded-lg">
+                    <div class="flex flex-wrap items-center gap-2 md:gap-3 mb-4">
+                        <a href="#" class="px-3 py-1 text-red-600 font-semibold hover:bg-red-100 rounded">All</a>
+                        @foreach(range('A', 'Z') as $letter)
+                            <a href="#" class="px-2 py-1 text-red-600 hover:bg-red-100 rounded transition-colors">
+                                {{ $letter }}
+                            </a>
+                        @endforeach
+                    </div>
 
-                <!-- Search Bar -->
-                <div class="flex gap-2">
-                    <input 
-                        type="text" 
-                        id="word-search"
-                        placeholder="Search words..." 
-                        class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none text-gray-900"
-                        dir="ltr"
-                    >
-                    <button 
-                        onclick="searchWords()"
-                        class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium">
-                        Search
-                    </button>
+                    <!-- Search Bar -->
+                    <div class="flex gap-2">
+                        <input 
+                            type="text" 
+                            id="word-search"
+                            placeholder="Search words..." 
+                            class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none text-gray-900"
+                            dir="ltr"
+                        >
+                        <button 
+                            onclick="searchWords()"
+                            class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium">
+                            Search
+                        </button>
+                    </div>
                 </div>
-            </div>
+            @else
+                <!-- Login Prompt for Category Search -->
+                <div class="mb-6 bg-orange-50 border border-orange-200 p-6 rounded-lg">
+                    <div class="text-center">
+                        <svg class="w-12 h-12 mx-auto text-orange-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                        </svg>
+                        <p class="text-lg font-medium text-gray-900 mb-2">शोधण्यासाठी साइन-इन करा</p>
+                        <p class="text-sm text-gray-600 mb-4">शब्द शोधण्यासाठी आणि वर्णमाला नेव्हिगेशन वापरण्यासाठी कृपया Google साइन-इन करा</p>
+                        <div class="flex justify-center">
+                            <x-google-signin />
+                        </div>
+                    </div>
+                </div>
+            @endauth
             <!-- Word Count -->
             <div class="mb-6">
                 <p class="text-gray-600 text-sm md:text-base">
@@ -91,9 +107,13 @@
     </div>
 </div>
 
+@auth
 <script>
     function searchWords() {
-        const searchTerm = document.getElementById('word-search').value.toLowerCase().trim();
+        const searchInput = document.getElementById('word-search');
+        if (!searchInput) return;
+        
+        const searchTerm = searchInput.value.toLowerCase().trim();
         const wordItems = document.querySelectorAll('.word-item');
         const noResults = document.getElementById('no-results');
         let visibleCount = 0;
@@ -112,20 +132,25 @@
 
         // Show/hide no results message
         if (visibleCount === 0 && searchTerm !== '') {
-            noResults.classList.remove('hidden');
-            document.getElementById('words-container').style.display = 'none';
+            if (noResults) noResults.classList.remove('hidden');
+            const wordsContainer = document.getElementById('words-container');
+            if (wordsContainer) wordsContainer.style.display = 'none';
         } else {
-            noResults.classList.add('hidden');
-            document.getElementById('words-container').style.display = 'grid';
+            if (noResults) noResults.classList.add('hidden');
+            const wordsContainer = document.getElementById('words-container');
+            if (wordsContainer) wordsContainer.style.display = 'grid';
         }
     }
 
     // Search on Enter key
-    document.getElementById('word-search').addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-            searchWords();
-        }
-    });
+    const searchInput = document.getElementById('word-search');
+    if (searchInput) {
+        searchInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                searchWords();
+            }
+        });
+    }
 
     // Filter by alphabet
     document.querySelectorAll('a[href="#"]').forEach(link => {
@@ -138,9 +163,11 @@
                 document.querySelectorAll('.word-item').forEach(item => {
                     item.style.display = 'block';
                 });
-                document.getElementById('word-search').value = '';
-                document.getElementById('no-results').classList.add('hidden');
-                document.getElementById('words-container').style.display = 'grid';
+                if (searchInput) searchInput.value = '';
+                const noResults = document.getElementById('no-results');
+                if (noResults) noResults.classList.add('hidden');
+                const wordsContainer = document.getElementById('words-container');
+                if (wordsContainer) wordsContainer.style.display = 'grid';
             } else {
                 // Filter by first letter
                 const wordItems = document.querySelectorAll('.word-item');
@@ -156,18 +183,21 @@
                     }
                 });
 
-                document.getElementById('word-search').value = '';
+                if (searchInput) searchInput.value = '';
                 
+                const noResults = document.getElementById('no-results');
+                const wordsContainer = document.getElementById('words-container');
                 if (visibleCount === 0) {
-                    document.getElementById('no-results').classList.remove('hidden');
-                    document.getElementById('words-container').style.display = 'none';
+                    if (noResults) noResults.classList.remove('hidden');
+                    if (wordsContainer) wordsContainer.style.display = 'none';
                 } else {
-                    document.getElementById('no-results').classList.add('hidden');
-                    document.getElementById('words-container').style.display = 'grid';
+                    if (noResults) noResults.classList.add('hidden');
+                    if (wordsContainer) wordsContainer.style.display = 'grid';
                 }
             }
         });
     });
 </script>
+@endauth
 @endsection
 

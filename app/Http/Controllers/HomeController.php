@@ -5,7 +5,9 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Mail\WordSuggestionMail;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Log;
 use App\Models\Category;
+use App\Models\DictionaryEntry;
 
 class HomeController extends Controller
 {
@@ -121,25 +123,40 @@ class HomeController extends Controller
         ]);
 
         try {
-            // Send email to info@marathibhasha.org
-            Mail::to('info@marathibhasha.org')->send(
-                new WordSuggestionMail(
-                    $request->word,
-                    $request->meaning,
-                    $request->source_reference,
-                    $request->name,
-                    $request->email
-                )
-            );
+            // Save to database
+            $suggestion = \App\Models\WordSuggestion::create([
+                'name' => $request->name,
+                'email' => $request->email,
+                'word' => $request->word,
+                'meaning' => $request->meaning,
+                'source_reference' => $request->source_reference,
+                'status' => 'pending',
+            ]);
+
+            // Also send email to info@marathibhasha.org (optional, for notifications)
+            try {
+                Mail::to('info@marathibhasha.org')->send(
+                    new WordSuggestionMail(
+                        $request->word,
+                        $request->meaning,
+                        $request->source_reference,
+                        $request->name,
+                        $request->email
+                    )
+                );
+            } catch (\Exception $e) {
+                // Log email error but don't fail the submission
+                Log::error('Word suggestion email failed: ' . $e->getMessage());
+            }
             
             return redirect()->route('suggest-word')
                 ->with('success', 'आपली शब्द सुचना आम्हाला मिळाली आहे. धन्यवाद!');
         } catch (\Exception $e) {
-            // Log the error if needed
-            \Log::error('Word suggestion email failed: ' . $e->getMessage());
+            // Log the error
+            Log::error('Word suggestion save failed: ' . $e->getMessage());
             
             return redirect()->route('suggest-word')
-                ->with('success', 'आपली शब्द सुचना आम्हाला मिळाली आहे. धन्यवाद!');
+                ->with('error', 'शब्द सुचना जतन करताना त्रुटी आली. कृपया पुन्हा प्रयत्न करा.');
         }
     }
 
@@ -276,16 +293,26 @@ class HomeController extends Controller
 
         $results = [];
         $searchTerm = strtolower($query);
+        $searchPattern = '%' . $searchTerm . '%';
+        $queryPattern = '%' . $query . '%';
 
-        // Search in database categories first
-        $dbCategories = Category::with('entries')->get();
+        // Search in database categories - optimized to avoid memory issues
+        // Use direct query instead of loading all entries
+        $dbCategories = Category::all();
         foreach ($dbCategories as $category) {
-            $matchedWords = $category->entries()
-                ->where(function ($q) use ($searchTerm) {
-                    $q->whereRaw('LOWER(word_en) LIKE ?', ['%' . $searchTerm . '%'])
-                      ->orWhereRaw('LOWER(meaning_mr) LIKE ?', ['%' . $searchTerm . '%']);
+            // Search entries directly without eager loading
+            $matchedWords = DictionaryEntry::where('category_id', $category->id)
+                ->where(function ($q) use ($searchTerm, $query, $searchPattern, $queryPattern) {
+                    // Search in English word (case-insensitive)
+                    $q->whereRaw('LOWER(word_en) LIKE ?', [$searchPattern])
+                      // Search in Marathi meaning (case-insensitive)
+                      ->orWhereRaw('LOWER(meaning_mr) LIKE ?', [$searchPattern])
+                      // Also try original query for exact matches
+                      ->orWhere('word_en', 'LIKE', $queryPattern)
+                      ->orWhere('meaning_mr', 'LIKE', $queryPattern);
                 })
-                ->get()
+                ->limit(100) // Limit results per category to avoid memory issues
+                ->get(['word_en', 'meaning_mr'])
                 ->map(function ($entry) {
                     return [
                         'english' => $entry->word_en,
@@ -295,11 +322,21 @@ class HomeController extends Controller
                 ->toArray();
 
             if (!empty($matchedWords)) {
-                $results[] = [
+                // Get total count for this category (without loading all entries)
+                $totalCount = DictionaryEntry::where('category_id', $category->id)
+                    ->where(function ($q) use ($searchTerm, $query, $searchPattern, $queryPattern) {
+                        $q->whereRaw('LOWER(word_en) LIKE ?', [$searchPattern])
+                          ->orWhereRaw('LOWER(meaning_mr) LIKE ?', [$searchPattern])
+                          ->orWhere('word_en', 'LIKE', $queryPattern)
+                          ->orWhere('meaning_mr', 'LIKE', $queryPattern);
+                    })
+                    ->count();
+
+                $results[$category->slug] = [
                     'category' => $category->name_mr,
                     'slug' => $category->slug,
                     'words' => $matchedWords,
-                    'count' => count($matchedWords)
+                    'count' => $totalCount
                 ];
             }
         }
@@ -308,11 +345,7 @@ class HomeController extends Controller
         $allCategories = $this->getAllCategoriesData();
         foreach ($allCategories as $slug => $categoryData) {
             // Skip if we already have this category from database
-            $alreadyInResults = collect($results)->contains(function ($result) use ($slug) {
-                return $result['slug'] === $slug;
-            });
-            
-            if ($alreadyInResults) {
+            if (isset($results[$slug])) {
                 continue;
             }
 
@@ -326,13 +359,17 @@ class HomeController extends Controller
                 $english = strtolower($word['english'] ?? '');
                 $marathi = strtolower($word['marathi'] ?? '');
 
-                if (str_contains($english, $searchTerm) || str_contains($marathi, $searchTerm)) {
+                // Search in both English and Marathi
+                if (str_contains($english, $searchTerm) || 
+                    str_contains($marathi, $searchTerm) ||
+                    str_contains($word['english'] ?? '', $query) ||
+                    str_contains($word['marathi'] ?? '', $query)) {
                     $matchedWords[] = $word;
                 }
             }
 
             if (!empty($matchedWords)) {
-                $results[] = [
+                $results[$slug] = [
                     'category' => $categoryName,
                     'slug' => $slug,
                     'words' => $matchedWords,
@@ -341,10 +378,13 @@ class HomeController extends Controller
             }
         }
 
+        // Convert results array to indexed array for view
+        $resultsArray = array_values($results);
+
         return view('pages.search', [
             'query' => $query,
-            'results' => $results,
-            'totalResults' => array_sum(array_column($results, 'count'))
+            'results' => $resultsArray,
+            'totalResults' => array_sum(array_column($resultsArray, 'count'))
         ]);
     }
 
