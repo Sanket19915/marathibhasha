@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Laravel\Socialite\Facades\Socialite;
 
 class GoogleController extends Controller
@@ -58,7 +59,7 @@ class GoogleController extends Controller
 
             return redirect()->intended('/');
         } catch (\Exception $e) {
-            \Log::error('Google OAuth error: ' . $e->getMessage());
+            Log::error('Google OAuth error: ' . $e->getMessage());
             return redirect()->route('home')->with('error', 'Google साइन-इन करताना त्रुटी आली. कृपया पुन्हा प्रयत्न करा.');
         }
     }
@@ -140,7 +141,7 @@ class GoogleController extends Controller
 
             return response()->json(['success' => true, 'redirect' => url('/')]);
         } catch (\Exception $e) {
-            \Log::error('Google One Tap error: ' . $e->getMessage());
+            Log::error('Google One Tap error: ' . $e->getMessage());
             return response()->json(['success' => false, 'message' => 'Authentication failed: ' . $e->getMessage()], 500);
         }
     }

@@ -82,7 +82,7 @@
         }
 
         // Send credential to server
-        fetch('{{ route('google.one-tap') }}', {
+        fetch('{{ route("google.one-tap") }}', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

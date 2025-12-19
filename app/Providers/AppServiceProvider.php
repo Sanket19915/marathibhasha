@@ -21,6 +21,8 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         // Set default locale to Marathi
-        App::setLocale('mr');
+        if ($this->app->bound('config')) {
+            $this->app->setLocale('mr');
+        }
     }
 }
